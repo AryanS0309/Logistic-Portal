@@ -1,0 +1,12 @@
+{
+  "name": "logistics-portal",
+  "version": "1.0.0",
+  "description": "Full-Stack Logistics & Delivery Tracking Portal",
+  "scripts": {
+    "install:backend": "cd backend && npm install",
+    "seed": "cd backend && node seed.js",
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev",
+    "test": "cd backend && npm test"
+  }
+}

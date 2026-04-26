@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SwiftRoute — Logistics & Delivery Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<!-- ====== LOADING SCREEN ====== -->
+<div id="loader" class="loader">
+  <div class="loader-inner">
+    <div class="loader-logo">SR</div>
+    <div class="loader-bar"><div class="loader-fill"></div></div>
+    <div class="loader-text">Initializing SwiftRoute...</div>
+  </div>
+</div>
+
+<!-- ====== AUTH PAGES ====== -->
+<div id="auth-page" class="auth-page hidden">
+  <div class="auth-bg">
+    <div class="auth-orb auth-orb-1"></div>
+    <div class="auth-orb auth-orb-2"></div>
+    <div class="auth-grid"></div>
+  </div>
+  <div class="auth-container">
+    <div class="auth-brand">
+      <div class="brand-mark">SR</div>
+      <div>
+        <div class="brand-name">SwiftRoute</div>
+        <div class="brand-tagline">Logistics Intelligence Platform</div>
+      </div>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login-form" class="auth-form-card">
+      <h2 class="auth-title">Welcome back</h2>
+      <p class="auth-subtitle">Sign in to your command center</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" placeholder="you@company.com" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-primary btn-full">
+          <span>Sign In</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div id="loginError" class="form-error hidden"></div>
+      </form>
+      <p class="auth-switch">Don't have an account? <a href="#" onclick="showRegister()">Create one</a></p>
+      <div class="auth-divider"><span>or try demo</span></div>
+      <div class="demo-accounts">
+        <button class="demo-btn" onclick="loginDemo('admin@swiftroute.com','admin123')">Admin</button>
+        <button class="demo-btn" onclick="loginDemo('manager@swiftroute.com','manager123')">Manager</button>
+        <button class="demo-btn" onclick="loginDemo('driver@swiftroute.com','driver123')">Driver</button>
+        <button class="demo-btn" onclick="loginDemo('customer@swiftroute.com','customer123')">Customer</button>
+      </div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="register-form" class="auth-form-card hidden">
+      <h2 class="auth-title">Create account</h2>
+      <p class="auth-subtitle">Join the SwiftRoute network</p>
+      <form id="registerForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="regName" placeholder="John Doe" required />
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="regRole">
+              <option value="customer">Customer</option>
+              <option value="driver">Driver</option>
+              <option value="manager">Manager</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="regEmail" placeholder="you@company.com" required />
+        </div>
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" id="regCompany" placeholder="Your Company (optional)" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="Min. 6 characters" required />
+        </div>
+        <button type="submit" class="btn-primary btn-full">Create Account</button>
+        <div id="registerError" class="form-error hidden"></div>
+      </form>
+      <p class="auth-switch">Already have an account? <a href="#" onclick="showLogin()">Sign in</a></p>
+    </div>
+  </div>
+
+  <!-- Public Track -->
+  <div class="public-track">
+    <div class="track-input-group">
+      <input type="text" id="publicTrackInput" placeholder="Enter tracking number (e.g. LGX-XXXXXXXX)" />
+      <button onclick="publicTrack()" class="btn-track">Track</button>
+    </div>
+    <div id="publicTrackResult" class="track-result hidden"></div>
+  </div>
+</div>
+
+<!-- ====== MAIN APP ====== -->
+<div id="app" class="app hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="brand-mark">SR</div>
+        <div class="brand-text">
+          <div class="brand-name">SwiftRoute</div>
+          <div class="brand-version">v2.0</div>
+        </div>
+      </div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9h12M3 4h12M3 14h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Overview</div>
+        <a href="#" class="nav-item active" onclick="navigate('dashboard')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="10" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="10" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span>Dashboard</span>
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Operations</div>
+        <a href="#" class="nav-item" onclick="navigate('shipments')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12l-1 8H4L3 5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M1 2h3l1 3H1V2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="16" r="1.5" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="16" r="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span>Shipments</span>
+          <span class="nav-badge" id="pendingBadge"></span>
+        </a>
+        <a href="#" class="nav-item" onclick="navigate('create-shipment')" id="createShipmentNav">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M9 6v6M6 9h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>New Shipment</span>
+        </a>
+        <a href="#" class="nav-item" onclick="navigate('tracking')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/></svg>
+          <span>Live Tracking</span>
+          <span class="nav-live">LIVE</span>
+        </a>
+      </div>
+      <div class="nav-section" id="adminNav">
+        <div class="nav-label">Management</div>
+        <a href="#" class="nav-item" onclick="navigate('users')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 16c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Users</span>
+        </a>
+        <a href="#" class="nav-item" onclick="navigate('analytics')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 14l4-4 3 3 4-5 3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Analytics</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">A</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarName">Admin User</div>
+        <div class="user-role" id="sidebarRole">Administrator</div>
+      </div>
+      <button class="btn-logout" onclick="logout()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3h3v10h-3M7 11l4-4-4-4M11 8H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-bar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="text" placeholder="Search shipments..." id="globalSearch" onkeyup="globalSearchHandler(event)" />
+        </div>
+        <button class="icon-btn" onclick="navigate('tracking')">
+          <div class="live-dot"></div>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/></svg>
+        </button>
+        <div class="notif-btn" onclick="toggleNotifications()">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2a5 5 0 015 5v3l1 2H3l1-2V7a5 5 0 015-5z" stroke="currentColor" stroke-width="1.5"/><path d="M7 14a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span class="notif-count" id="notifCount" style="display:none">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Notification Panel -->
+    <div id="notifPanel" class="notif-panel hidden">
+      <div class="notif-header">
+        <span>Notifications</span>
+        <button onclick="markAllRead()">Mark all read</button>
+      </div>
+      <div id="notifList" class="notif-list"></div>
+    </div>
+
+    <!-- PAGES -->
+    <div class="pages-container">
+
+      <!-- DASHBOARD PAGE -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <div>
+            <h1 class="page-heading">Control Center</h1>
+            <p class="page-desc">Real-time logistics overview</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn-secondary" onclick="refreshDashboard()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 7A5 5 0 112 7M12 7V4M12 7h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Refresh
+            </button>
+            <button class="btn-primary" onclick="navigate('create-shipment')">+ New Shipment</button>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card stat-total">
+            <div class="stat-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 4V2M14 4V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-total">0</div>
+              <div class="stat-label">Total Shipments</div>
+            </div>
+            <div class="stat-trend up">+12%</div>
+          </div>
+          <div class="stat-card stat-transit">
+            <div class="stat-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M2 11h18M2 11l4-4M2 11l4 4M20 11l-4-4M20 11l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-transit">0</div>
+              <div class="stat-label">In Transit</div>
+            </div>
+            <div class="stat-trend up">Live</div>
+          </div>
+          <div class="stat-card stat-delivered">
+            <div class="stat-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 12l5 5 9-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-delivered">0</div>
+              <div class="stat-label">Delivered</div>
+            </div>
+            <div class="stat-trend up">+8%</div>
+          </div>
+          <div class="stat-card stat-pending">
+            <div class="stat-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M11 7v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-pending">0</div>
+              <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-trend warning">Needs action</div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+          <div class="chart-card chart-main">
+            <div class="chart-header">
+              <div class="chart-title">Shipment Volume</div>
+              <div class="chart-legend">
+                <span class="legend-dot" style="background:#6EE7B7"></span>Monthly
+              </div>
+            </div>
+            <canvas id="volumeChart" height="200"></canvas>
+          </div>
+          <div class="chart-card chart-side">
+            <div class="chart-header"><div class="chart-title">Status Breakdown</div></div>
+            <canvas id="statusChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <!-- Recent Shipments -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3>Recent Shipments</h3>
+            <button class="btn-link" onclick="navigate('shipments')">View all →</button>
+          </div>
+          <div id="recentShipments" class="table-container">
+            <div class="loading-state">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHIPMENTS PAGE -->
+      <div id="page-shipments" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-heading">Shipments</h1>
+            <p class="page-desc">Manage all deliveries</p>
+          </div>
+          <button class="btn-primary" onclick="navigate('create-shipment')" id="newShipmentBtn">+ New Shipment</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-bar">
+          <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterShipments('all', this)">All</button>
+            <button class="filter-tab" onclick="filterShipments('pending', this)">Pending</button>
+            <button class="filter-tab" onclick="filterShipments('in_transit', this)">In Transit</button>
+            <button class="filter-tab" onclick="filterShipments('out_for_delivery', this)">Out for Delivery</button>
+            <button class="filter-tab" onclick="filterShipments('delivered', this)">Delivered</button>
+          </div>
+          <div class="filter-controls">
+            <select id="priorityFilter" onchange="applyFilters()">
+              <option value="">All Priorities</option>
+              <option value="urgent">Urgent</option>
+              <option value="express">Express</option>
+              <option value="standard">Standard</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Shipments Table -->
+        <div class="section-card">
+          <div id="shipmentsTable" class="table-container">
+            <div class="loading-state">Loading shipments...</div>
+          </div>
+          <div class="pagination" id="shipmentsPagination"></div>
+        </div>
+      </div>
+
+      <!-- CREATE SHIPMENT PAGE -->
+      <div id="page-create-shipment" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-heading">New Shipment</h1>
+            <p class="page-desc">Create a new delivery request</p>
+          </div>
+        </div>
+        <form id="createShipmentForm" class="shipment-form">
+          <div class="form-grid">
+            <div class="form-section">
+              <div class="form-section-title">
+                <div class="section-num">01</div>
+                Sender Information
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Sender Name *</label>
+                  <input type="text" name="sender.name" required placeholder="Full name" />
+                </div>
+                <div class="form-group">
+                  <label>Sender Email</label>
+                  <input type="email" name="sender.email" placeholder="email@example.com" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Phone</label>
+                  <input type="text" name="sender.phone" placeholder="+91 XXXXX XXXXX" />
+                </div>
+                <div class="form-group">
+                  <label>City *</label>
+                  <input type="text" name="sender.address.city" required placeholder="Mumbai" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Street Address</label>
+                  <input type="text" name="sender.address.street" placeholder="Street, Area" />
+                </div>
+                <div class="form-group">
+                  <label>PIN Code</label>
+                  <input type="text" name="sender.address.pincode" placeholder="400001" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <div class="section-num">02</div>
+                Recipient Information
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Recipient Name *</label>
+                  <input type="text" name="recipient.name" required placeholder="Full name" />
+                </div>
+                <div class="form-group">
+                  <label>Recipient Email</label>
+                  <input type="email" name="recipient.email" placeholder="email@example.com" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Phone</label>
+                  <input type="text" name="recipient.phone" placeholder="+91 XXXXX XXXXX" />
+                </div>
+                <div class="form-group">
+                  <label>City *</label>
+                  <input type="text" name="recipient.address.city" required placeholder="Delhi" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Street Address</label>
+                  <input type="text" name="recipient.address.street" placeholder="Street, Area" />
+                </div>
+                <div class="form-group">
+                  <label>PIN Code</label>
+                  <input type="text" name="recipient.address.pincode" placeholder="110001" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <div class="section-num">03</div>
+                Package Details
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Weight (kg) *</label>
+                  <input type="number" name="package.weight" required min="0.1" step="0.1" placeholder="2.5" />
+                </div>
+                <div class="form-group">
+                  <label>Description</label>
+                  <input type="text" name="package.description" placeholder="Electronics, Clothing..." />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Length (cm)</label>
+                  <input type="number" name="package.dimensions.length" placeholder="30" />
+                </div>
+                <div class="form-group">
+                  <label>Width (cm)</label>
+                  <input type="number" name="package.dimensions.width" placeholder="20" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Height (cm)</label>
+                  <input type="number" name="package.dimensions.height" placeholder="15" />
+                </div>
+                <div class="form-group">
+                  <label>Declared Value (₹)</label>
+                  <input type="number" name="package.value" placeholder="5000" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="package.fragile" />
+                  <span class="checkbox-custom"></span>
+                  Fragile Item
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <div class="section-num">04</div>
+                Delivery Options
+              </div>
+              <div class="form-group">
+                <label>Priority</label>
+                <div class="priority-options">
+                  <label class="priority-card">
+                    <input type="radio" name="priority" value="standard" checked />
+                    <div class="priority-content">
+                      <div class="priority-icon">📦</div>
+                      <div class="priority-name">Standard</div>
+                      <div class="priority-time">3-5 days</div>
+                    </div>
+                  </label>
+                  <label class="priority-card">
+                    <input type="radio" name="priority" value="express" />
+                    <div class="priority-content">
+                      <div class="priority-icon">⚡</div>
+                      <div class="priority-name">Express</div>
+                      <div class="priority-time">1-2 days</div>
+                    </div>
+                  </label>
+                  <label class="priority-card">
+                    <input type="radio" name="priority" value="urgent" />
+                    <div class="priority-content">
+                      <div class="priority-icon">🚀</div>
+                      <div class="priority-name">Urgent</div>
+                      <div class="priority-time">Same day</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Notes</label>
+                <textarea name="notes" rows="3" placeholder="Special instructions..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-submit-area">
+            <div class="cost-preview" id="costPreview"></div>
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="navigate('shipments')">Cancel</button>
+              <button type="submit" class="btn-primary btn-lg">Create Shipment →</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- TRACKING PAGE -->
+      <div id="page-tracking" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-heading">Live Tracking</h1>
+            <p class="page-desc">Real-time shipment monitoring</p>
+          </div>
+        </div>
+        <div class="tracking-layout">
+          <div class="tracking-search-card">
+            <h3>Track Shipment</h3>
+            <div class="track-input-group">
+              <input type="text" id="trackingInput" placeholder="Enter tracking number..." />
+              <button onclick="trackShipment()" class="btn-primary">Track</button>
+            </div>
+            <div id="trackingResult" class="tracking-result"></div>
+          </div>
+          <div class="live-feed-card">
+            <div class="live-feed-header">
+              <div class="live-indicator">
+                <div class="live-dot"></div>
+                <span>Live Feed</span>
+              </div>
+              <span id="onlineUsers">0 online</span>
+            </div>
+            <div id="liveFeed" class="live-feed-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USERS PAGE -->
+      <div id="page-users" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-heading">User Management</h1>
+            <p class="page-desc">Manage team and roles</p>
+          </div>
+        </div>
+        <div class="section-card">
+          <div id="usersTable" class="table-container">
+            <div class="loading-state">Loading users...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS PAGE -->
+      <div id="page-analytics" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1 class="page-heading">Analytics</h1>
+            <p class="page-desc">Performance metrics & insights</p>
+          </div>
+        </div>
+        <div class="analytics-grid">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Monthly Revenue</div></div>
+            <canvas id="revenueChart" height="250"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Priority Distribution</div></div>
+            <canvas id="priorityChart" height="250"></canvas>
+          </div>
+          <div class="chart-card chart-wide">
+            <div class="chart-header"><div class="chart-title">Delivery Performance Over Time</div></div>
+            <canvas id="performanceChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- MODALS -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal()">
+  <div id="modal-content" class="modal-content" onclick="event.stopPropagation()">
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container" class="toast-container"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
