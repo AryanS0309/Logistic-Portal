@@ -15,6 +15,16 @@ const connectDB = require('./config/database');
 const { requestLogger } = require('./middleware/logger');
 const { errorHandler, notFound } = require('./middleware/error');
 
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'SESSION_SECRET'];
+requiredEnvVars.forEach((envVar) => {
+  if (!process.env[envVar]) {
+    console.error(`❌ Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+});
+
+const sessionKeys = [process.env.SESSION_SECRET];
+
 // Routes
 const authRoutes = require('./routes/auth');
 const shipmentRoutes = require('./routes/shipments');
@@ -74,7 +84,7 @@ app.use(cookieParser());
 // Cookie session
 app.use(cookieSession({
   name: 'logistics_session',
-  secret: process.env.SESSION_SECRET,
+  keys: sessionKeys,
   maxAge: 7 * 24 * 60 * 60 * 1000,
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production'
