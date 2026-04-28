@@ -171,7 +171,7 @@ describe('Shipment API', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  test('GET /api/v1/shipments/dashboard/stats - Admin only', async () => {
+  test('GET /api/v1/shipments/dashboard/stats - Admin/Manager/Driver only', async () => {
     const res = await request(app)
       .get('/api/v1/shipments/dashboard/stats')
       .set('Authorization', `Bearer ${adminToken}`);

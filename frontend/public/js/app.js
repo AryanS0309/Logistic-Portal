@@ -250,7 +250,18 @@ async function apiCall(endpoint, method = 'GET', body = null) {
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(`${API_URL}${endpoint}`, opts);
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
+  if (!res.ok) {
+    if (res.status === 401) {
+      authToken = null;
+      currentUser = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      showToast('Session expired', 'Please log in again.', 'error');
+      showAuthPage();
+      showLogin();
+    }
+    throw new Error(data.message || 'Request failed');
+  }
   return data;
 }
 
@@ -261,7 +272,7 @@ async function loadDashboard() {
 
 async function loadDashboardStats() {
   try {
-    if (currentUser?.role === 'admin' || currentUser?.role === 'manager') {
+    if (currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'driver') {
       const data = await apiCall('/shipments/dashboard/stats');
       if (data.success) {
         animateCounter('stat-total', data.stats.total);

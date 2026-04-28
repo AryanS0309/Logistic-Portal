@@ -20,7 +20,7 @@ router.get('/track/:trackingNumber', trackShipment);
 router.use(protect);
 
 // Dashboard stats
-router.get('/dashboard/stats', authorize('admin', 'manager'), getDashboardStats);
+router.get('/dashboard/stats', authorize('admin', 'manager', 'driver'), getDashboardStats);
 
 // GET all shipments / POST create
 router.route('/')

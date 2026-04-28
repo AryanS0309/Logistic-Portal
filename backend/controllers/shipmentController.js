@@ -48,9 +48,7 @@ exports.getShipments = async (req, res, next) => {
     let query = {};
     
     // Role-based filtering
-    if (req.user.role === 'driver') {
-      query.assignedDriver = req.user.id;
-    } else if (req.user.role === 'customer') {
+    if (req.user.role === 'customer') {
       query.$or = [
         { 'sender.email': req.user.email },
         { 'recipient.email': req.user.email }
