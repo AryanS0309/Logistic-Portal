@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 const demoUsers = [
@@ -8,18 +9,41 @@ const demoUsers = [
 ];
 
 const ensureDemoUsers = async () => {
-  const count = await User.countDocuments();
-  if (count > 0) {
-    return false;
+  let changed = false;
+
+  for (const userData of demoUsers) {
+    const existingUser = await User.findOne({ email: userData.email });
+    const hashedPassword = await bcrypt.hash(userData.password, 12);
+
+    if (!existingUser) {
+      await User.create({
+        ...userData,
+        password: hashedPassword,
+        isActive: true
+      });
+      changed = true;
+      continue;
+    }
+
+    existingUser.name = userData.name;
+    existingUser.role = userData.role;
+    existingUser.company = userData.company || existingUser.company;
+    existingUser.phone = userData.phone || existingUser.phone;
+    existingUser.isActive = true;
+    existingUser.password = hashedPassword;
+    await existingUser.save();
+    changed = true;
   }
 
-  await User.create(demoUsers);
-  console.log('\n✅ Demo user accounts created:');
-  console.log('  Admin:    admin@swiftroute.com / admin123');
-  console.log('  Manager:  manager@swiftroute.com / manager123');
-  console.log('  Driver:   driver@swiftroute.com  / driver123');
-  console.log('  Customer: customer@swiftroute.com / customer123\n');
-  return true;
+  if (changed) {
+    console.log('\n✅ Demo user accounts created or updated:');
+    console.log('  Admin:    admin@swiftroute.com / admin123');
+    console.log('  Manager:  manager@swiftroute.com / manager123');
+    console.log('  Driver:   driver@swiftroute.com / driver123');
+    console.log('  Customer: customer@swiftroute.com / customer123\n');
+  }
+
+  return changed;
 };
 
 module.exports = { ensureDemoUsers };
