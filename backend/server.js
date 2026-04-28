@@ -12,6 +12,7 @@ const path = require('path');
 const EventEmitter = require('events');
 
 const connectDB = require('./config/database');
+const { ensureDemoUsers } = require('./utils/seedDemo');
 const { requestLogger } = require('./middleware/logger');
 const { errorHandler, notFound } = require('./middleware/error');
 
@@ -46,8 +47,16 @@ const io = new Server(server, {
 class LogisticsEventEmitter extends EventEmitter {}
 const logisticsEvents = new LogisticsEventEmitter();
 
-// Connect to DB
-connectDB();
+// Connect to DB and ensure demo users if the database is empty
+const initServer = async () => {
+  await connectDB();
+  await ensureDemoUsers();
+};
+
+initServer().catch((err) => {
+  console.error('❌ Failed to initialize server:', err);
+  process.exit(1);
+});
 
 // Trust proxy
 app.set('trust proxy', 1);
