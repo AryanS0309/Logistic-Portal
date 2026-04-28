@@ -1,4 +1,3 @@
-const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 const demoUsers = [
@@ -13,12 +12,10 @@ const ensureDemoUsers = async () => {
 
   for (const userData of demoUsers) {
     const existingUser = await User.findOne({ email: userData.email });
-    const hashedPassword = await bcrypt.hash(userData.password, 12);
 
     if (!existingUser) {
       await User.create({
         ...userData,
-        password: hashedPassword,
         isActive: true
       });
       changed = true;
@@ -30,7 +27,7 @@ const ensureDemoUsers = async () => {
     existingUser.company = userData.company || existingUser.company;
     existingUser.phone = userData.phone || existingUser.phone;
     existingUser.isActive = true;
-    existingUser.password = hashedPassword;
+    existingUser.password = userData.password;
     await existingUser.save();
     changed = true;
   }
